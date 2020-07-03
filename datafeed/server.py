@@ -15,8 +15,6 @@ import threading
 import http.server
 from socketserver   import ThreadingMixIn
 
-# Config
-
 # Sim params
 
 REALTIME    = True
@@ -62,7 +60,6 @@ def orders(hist):
         yield t, stock, side, order, size
 
 
-
 # Order Book
 
 def add_book(book, order, size, _age = 10):
@@ -73,10 +70,6 @@ def add_book(book, order, size, _age = 10):
             yield o, s, age - 1
 
 def clear_order(order, size, book, op = operator.ge, _notional = 0):
-    """ Try to clear a sized order against a book, returning a tuple of
-        (notional, new_book) if successful, and None if not.  _notional is a
-        recursive accumulator and should not be provided by the caller.
-    """
     (top_order, top_size, age), tail = book[0], book[1:]
     if op(order, top_order):
         _notional += min(size, top_size) * top_order
@@ -101,9 +94,7 @@ def clear_book(buy = None, sell = None):
     return buy, sell
 
 def order_book(orders, book, stock_name):
-    """ Generates a series of order books from a series of orders.  Order books
-        are mutable lists, and mutating them during generation will affect the
-        next turn!
+    """ Generates a series of order books from a series of orders.
     """
     for t, stock, side, order, size in orders:
         if stock_name == stock:
@@ -132,19 +123,12 @@ def read_csv():
 # Server
 
 class ThreadedHTTPServer(ThreadingMixIn, http.server.HTTPServer):
-    """ Boilerplate class for a multithreaded HTTP Server, with working
-        shutdown.
-    """
     allow_reuse_address = True
     def shutdown(self):
-        """ Override MRO to shutdown properly. """
         self.socket.close()
         http.server.HTTPServer.shutdown(self)
 
 def route(path):
-    """ Decorator for a simple bottle-like web framework.  Routes path to the
-        decorated method, with the rest of the path as an argument.
-    """
     def _route(f):
         setattr(f, '__route__', path)
         return f
@@ -174,9 +158,6 @@ def get(req_handler, routes):
                 return
 
 def run(routes, host = '0.0.0.0', port = 8080):
-    """ Runs a class as a server whose methods have been decorated with
-        @route.
-    """
     class RequestHandler(http.server.BaseHTTPRequestHandler):
         def log_message(self, *args, **kwargs):
             pass
@@ -238,9 +219,6 @@ class App(object):
 
     @route('/query')
     def handle_query(self, x):
-        """ Takes no arguments, and yields the current top of the book;  the
-            best bid and ask and their sizes
-        """
         try:
             t1, bids1, asks1 = next(self._current_book_1)
             t2, bids2, asks2 = next(self._current_book_2)
